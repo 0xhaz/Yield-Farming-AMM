@@ -33,7 +33,7 @@ contract BaseV1Factory {
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
-    event PairCreated(address indexed token0, address indexed token1, bool stable, address pair, uint256);
+    event PairCreated(address indexed token0, address indexed token1, bool stable, address pair, uint256 pairLength);
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR

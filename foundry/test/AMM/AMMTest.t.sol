@@ -14,7 +14,7 @@ import {SpiritToken} from "src/tokens/SpiritToken.sol";
 contract AMMTest is Test {
     BaseV1Factory factory;
     BaseV1Router01 router;
-    WETH weth;
+    WETH wftm;
     ERC20Mock TK1;
     ERC20Mock TK2;
     ERC20Mock USDC;
@@ -25,8 +25,8 @@ contract AMMTest is Test {
 
     function setUp() public {
         factory = new BaseV1Factory();
-        weth = new WETH();
-        router = new BaseV1Router01(address(factory), address(weth));
+        wftm = new WETH();
+        router = new BaseV1Router01(address(factory), address(wftm));
         TK1 = new ERC20Mock("Token 1", "TK1");
         TK2 = new ERC20Mock("Token 2", "TK2");
         USDC = new ERC20Mock("USD Coin", "USDC");

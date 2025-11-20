@@ -164,6 +164,10 @@ contract BaseV1Pair {
     }
 
     /// @notice The cumulative price using counterfactuals to save gas and avoid a call to sync
+    /// @dev The purpose of this function is to compute and return up-to-date cumulative price values of the pair
+    /// @dev use for oracles and TWAPs
+    /// price0Cumulative[t1] = price0Cumulative[t0] + price0 * (t1 - t0)
+    /// these are only updated during state changing ops (mint, swap, burn)
     function currentCumulativePrices()
         public
         view
