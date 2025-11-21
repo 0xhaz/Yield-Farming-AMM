@@ -12,6 +12,12 @@ contract BaseV1PairTest is Test {
     ERC20Mock token2;
     BaseV1Pair pair;
 
+    struct Observation {
+        uint256 timestamp;
+        uint256 reserve0Cumulative;
+        uint256 reserve1Cumulative;
+    }
+
     function setUp() public {
         factory = new BaseV1Factory();
         token1 = new ERC20Mock("Token 1", "TK1");
@@ -65,9 +71,19 @@ contract BaseV1PairTest is Test {
         emit log_named_array("TWAP Prices", prices);
 
         (uint256 reserve0Cumulative, uint256 reserve1Cumulative,) = pair.currentCumulativePrices();
+        // 18080838000000000000000000000 [1.808e28]
         console.log("Reserve0 Cumulative:", reserve0Cumulative);
+        // 35927100000000000000000000000 [3.592e28]
         console.log("Reserve1 Cumulative:", reserve1Cumulative);
         (uint256 reserve0, uint256 reserve1,) = pair.getReserves();
-        console.log("Current Reserves:", reserve0, reserve1);
+        // 1009980000000000000000000 [1.009e24]
+        console.log("Current Reserves0:", reserve0);
+        // 1991000000000000000000000 [1.991e24]
+        console.log("Current Reserves1:", reserve1);
+
+        // 1004435198044553080384423 [1.004e24])
+        console.log("TWAP avg price0 = ", reserve0Cumulative / block.timestamp);
+        // 1971326164874551971 [1.971e18]
+        console.log("Spot price0 = ", reserve1 * 1e18 / reserve0);
     }
 }
