@@ -78,7 +78,7 @@ contract BaseV1PairTest is Test {
         (uint256 reserve0, uint256 reserve1,) = pair.getReserves();
         // 1009980000000000000000000 [1.009e24]
         console.log("Current Reserves0:", reserve0);
-        // 1991000000000000000000000 [1.991e24]
+        // 1991000000000000000000000 [1.991e24] from swaps
         console.log("Current Reserves1:", reserve1);
 
         // 1004435198044553080384423 [1.004e24])
