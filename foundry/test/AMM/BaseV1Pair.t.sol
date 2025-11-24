@@ -12,6 +12,9 @@ contract BaseV1PairTest is Test {
     ERC20Mock token2;
     BaseV1Pair pair;
 
+    address constant user1 = address(0x123);
+    address constant user2 = address(0x456);
+
     struct Observation {
         uint256 timestamp;
         uint256 reserve0Cumulative;
@@ -85,5 +88,177 @@ contract BaseV1PairTest is Test {
         console.log("TWAP avg price0 = ", reserve0Cumulative / block.timestamp);
         // 1971326164874551971 [1.971e18]
         console.log("Spot price0 = ", reserve1 * 1e18 / reserve0);
+    }
+
+    function testMint() public {
+        deal(address(token1), user1, 1_000_000 ether);
+        deal(address(token2), user1, 1_000_000 ether);
+        vm.startPrank(user1);
+
+        token1.approve(address(pair), type(uint256).max);
+        token2.approve(address(pair), type(uint256).max);
+
+        token1.transfer(address(pair), 500_000 ether);
+        token2.transfer(address(pair), 500_000 ether);
+
+        uint256 liquidity = pair.mint(user1);
+
+        assertGt(liquidity, 0, "Liquidity should be greater than zero");
+        vm.stopPrank();
+    }
+
+    function testBurn() public {
+        // First, mint some liquidity
+        deal(address(token1), user2, 1_000_000 ether);
+        deal(address(token2), user2, 1_000_000 ether);
+        vm.startPrank(user2);
+
+        token1.approve(address(pair), type(uint256).max);
+        token2.approve(address(pair), type(uint256).max);
+
+        token1.transfer(address(pair), 500_000 ether);
+        token2.transfer(address(pair), 500_000 ether);
+
+        uint256 liquidity = pair.mint(user2);
+        assertGt(liquidity, 0, "Liquidity should be greater than zero");
+
+        // Now, burn the liquidity
+        pair.transfer(address(pair), liquidity); // transfer LP tokens to pair
+        uint256 amount0;
+        uint256 amount1;
+        (amount0, amount1) = pair.burn(user2);
+
+        assertGt(amount0, 0, "Amount0 should be greater than zero");
+        assertGt(amount1, 0, "Amount1 should be greater than zero");
+        vm.stopPrank();
+    }
+
+    function testSwap() public {
+        // First, mint some liquidity
+        deal(address(token1), user1, 1_000_000 ether);
+        deal(address(token2), user1, 1_000_000 ether);
+        vm.startPrank(user1);
+
+        token1.approve(address(pair), type(uint256).max);
+        token2.approve(address(pair), type(uint256).max);
+
+        token1.transfer(address(pair), 500_000 ether);
+        token2.transfer(address(pair), 500_000 ether);
+
+        uint256 liquidity = pair.mint(user1);
+        assertGt(liquidity, 0, "Liquidity should be greater than zero");
+        vm.stopPrank();
+
+        // Now, perform a swap
+        deal(address(token1), user2, 10_000 ether);
+        vm.startPrank(user2);
+
+        token1.approve(address(pair), type(uint256).max);
+        token1.transfer(address(pair), 10_000 ether);
+
+        // get current reserves
+        (uint256 reserve0, uint256 reserve1,) = pair.getReserves();
+        // function getAmountOut(uint amountIn, address tokenIn)
+        // tokenIn is token1
+        // amountIn is 10_000 ether
+        // expect amountOut to be less than input due to fees
+        uint256 amountOut = pair.getAmountOut(10_000 ether, address(token1));
+
+        pair.swap(0, amountOut, user2, ""); // swap token1 for token2
+
+        uint256 user2Token2Balance = token2.balanceOf(user2);
+        //9784697439115259421938 [9.784e21]
+        assertGt(user2Token2Balance, 0, "User2 should have received some token2");
+        vm.stopPrank();
+    }
+
+    function testSkimAndSync() public {
+        // First, mint some liquidity
+        deal(address(token1), user1, 1_000_000 ether);
+        deal(address(token2), user1, 1_000_000 ether);
+        vm.startPrank(user1);
+
+        token1.approve(address(pair), type(uint256).max);
+        token2.approve(address(pair), type(uint256).max);
+
+        token1.transfer(address(pair), 500_000 ether);
+        token2.transfer(address(pair), 500_000 ether);
+
+        uint256 liquidity = pair.mint(user1);
+        assertGt(liquidity, 0, "Liquidity should be greater than zero");
+
+        // Transfer extra tokens to pair to simulate imbalance
+        token1.transfer(address(pair), 10_000 ether);
+        token2.transfer(address(pair), 20_000 ether);
+
+        uint256 beforeSkimToken1 = token1.balanceOf(user1);
+        uint256 beforeSkimToken2 = token2.balanceOf(user1);
+
+        // Call skim to send excess tokens to user1
+        pair.skim(user1);
+
+        uint256 afterSkimToken1 = token1.balanceOf(user1);
+        uint256 afterSkimToken2 = token2.balanceOf(user1);
+
+        assertEq(afterSkimToken1 - beforeSkimToken1, 10_000 ether, "User1 should receive excess token1");
+        assertEq(afterSkimToken2 - beforeSkimToken2, 20_000 ether, "User1 should receive excess token2");
+
+        // Now call sync to update reserves
+        pair.sync();
+
+        (uint256 reserve0, uint256 reserve1,) = pair.getReserves();
+        assertEq(reserve0, 500_000 ether, "Reserve0 should be updated correctly");
+        assertEq(reserve1, 500_000 ether, "Reserve1 should be updated correctly");
+
+        vm.stopPrank();
+    }
+
+    function testGetReserves() public {
+        // First, mint some liquidity
+        deal(address(token1), user1, 1_000_000 ether);
+        deal(address(token2), user1, 1_000_000 ether);
+        vm.startPrank(user1);
+
+        token1.approve(address(pair), type(uint256).max);
+        token2.approve(address(pair), type(uint256).max);
+
+        token1.transfer(address(pair), 500_000 ether);
+        token2.transfer(address(pair), 500_000 ether);
+
+        uint256 liquidity = pair.mint(user1);
+        assertGt(liquidity, 0, "Liquidity should be greater than zero");
+
+        (uint256 reserve0, uint256 reserve1, uint256 timestamp) = pair.getReserves();
+        assertEq(reserve0, 500_000 ether, "Reserve0 should match deposited amount");
+        assertEq(reserve1, 500_000 ether, "Reserve1 should match deposited amount");
+        assertGt(timestamp, 0, "Timestamp should be greater than zero");
+
+        vm.stopPrank();
+    }
+
+    function testCurrentCumulativePrices() public {
+        // First, mint some liquidity
+        deal(address(token1), user1, 1_000_000 ether);
+        deal(address(token2), user1, 1_000_000 ether);
+        vm.startPrank(user1);
+
+        token1.approve(address(pair), type(uint256).max);
+        token2.approve(address(pair), type(uint256).max);
+
+        token1.transfer(address(pair), 500_000 ether);
+        token2.transfer(address(pair), 500_000 ether);
+
+        uint256 liquidity = pair.mint(user1);
+        assertGt(liquidity, 0, "Liquidity should be greater than zero");
+
+        // Move forward in time
+        vm.warp(block.timestamp + 3600); // 1 hour
+
+        (uint256 reserve0Cumulative, uint256 reserve1Cumulative,) = pair.currentCumulativePrices();
+
+        assertGt(reserve0Cumulative, 0, "Reserve0 Cumulative should be greater than zero");
+        assertGt(reserve1Cumulative, 0, "Reserve1 Cumulative should be greater than zero");
+
+        vm.stopPrank();
     }
 }
