@@ -22,11 +22,11 @@ contract BaseV1Factory {
     /*//////////////////////////////////////////////////////////////
                                 MAPPINGS
     //////////////////////////////////////////////////////////////*/
-    mapping(address => mapping(address => mapping(bool => address))) public s_getPair;
+    mapping(address => mapping(address => mapping(bool => address))) public getPair;
     address[] public allPairs;
     /// @notice Simplifed check if its a pair, given that `stable` flag might not be available in peripherals
     mapping(address => bool) public isPair;
-
+    // @notice Protocol address for a given pair
     mapping(address => address) public s_protocolAddresses; // pair => protocol address
     address public s_spiritMaker;
 
@@ -51,13 +51,13 @@ contract BaseV1Factory {
         require(tokenA != tokenB, "BaseV1: IDENTICAL_ADDRESSES");
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
         require(token0 != address(0), "BaseV1: ZERO_ADDRESS");
-        require(s_getPair[token0][token1][stable] == address(0), "BaseV1: PAIR_EXISTS");
+        require(getPair[token0][token1][stable] == address(0), "BaseV1: PAIR_EXISTS");
 
         bytes32 salt = keccak256(abi.encodePacked(token0, token1, stable));
         (_temp0, _temp1, _temp) = (token0, token1, stable);
         pair = address(new BaseV1Pair{salt: salt}());
-        s_getPair[token0][token1][stable] = pair;
-        s_getPair[token1][token0][stable] = pair; // populate mapping in the reverse direction
+        getPair[token0][token1][stable] = pair;
+        getPair[token1][token0][stable] = pair; // populate mapping in the reverse direction
         allPairs.push(pair);
         isPair[pair] = true;
 

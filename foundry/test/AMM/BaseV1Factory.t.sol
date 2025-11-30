@@ -40,7 +40,7 @@ contract BaseV1FactoryTest is Test {
         );
         address pair = factory.createPair(address(token1), address(token2), false);
 
-        address fetchedPair = factory.s_getPair(address(token1), address(token2), false);
+        address fetchedPair = factory.getPair(address(token1), address(token2), false);
         assertEq(pair, fetchedPair);
         assertTrue(factory.isPair(pair));
 
